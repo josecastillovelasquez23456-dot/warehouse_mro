@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+
+    <div class="card shadow-lg border-0">
+        <div class="card-header bg-primary text-white">
+            <h4 class="mb-0">📦 Subir Inventario Histórico</h4>
+        </div>
+
+        <div class="card-body">
+
+            <p class="text-muted">
+                Este módulo te permite subir inventarios antiguos sin afectar el inventario actual.  
+                Cada archivo se guardará como un <b>snapshot histórico</b> para análisis y comparación.
+            </p>
+
+            <form method="POST" enctype="multipart/form-data">
+
+                <!-- Nombre del snapshot -->
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Nombre del Snapshot</label>
+                    <input
+                        type="text"
+                        name="snapshot_name"
+                        class="form-control"
+                        placeholder="Ej: Inventario Julio 2024, Conteo Anual 2023, etc."
+                    >
+                    <small class="text-muted">
+                        Si lo dejas vacío, se generará un nombre automático.
+                    </small>
+                </div>
+
+                <!-- Archivo Excel -->
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Archivo Excel del Inventario</label>
+                    <input
+                        type="file"
+                        name="file"
+                        class="form-control"
+                        accept=".xlsx,.xls"
+                        required
+                    >
+                    <small class="text-muted">
+                        Debe contener las columnas:
+                        <b>Código del Material</b>, <b>Texto breve de material</b>,
+                        <b>Unidad de medida base</b>, <b>Ubicación</b>, <b>Libre utilización</b>.
+                    </small>
+                </div>
+
+                <div class="mt-4 d-flex justify-content-between">
+                    <a href="{{ url_for('inventory.dashboard') }}" class="btn btn-secondary">
+                        ⬅ Volver al Dashboard
+                    </a>
+
+                    <button type="submit" class="btn btn-primary px-4">
+                        📤 Subir Inventario Histórico
+                    </button>
+                </div>
+
+            </form>
+
+        </div>
+    </div>
+
+</div>
+{% endblock %}
