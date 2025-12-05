@@ -1,55 +1,141 @@
 {% extends "base.html" %}
 
 {% block content %}
+
 <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
-        <h4>Inventario actual</h4>
-        <p class="text-muted mb-0">Ubicaciones ordenadas automáticamente (E001, E002, A01, A02, etc.).</p>
+        <h4 class="fw-bold mb-1">📚 Inventario actual</h4>
+        <p class="text-muted mb-0">Ubicaciones ordenadas automáticamente.</p>
     </div>
+
     <div class="btn-group">
         <a href="{{ url_for('inventory.upload_inventory') }}" class="btn btn-outline-primary btn-sm">
-            <i class="bi bi-upload me-1"></i>Cargar nuevo inventario
+            <i class="bi bi-upload me-1"></i>Cargar inventario
         </a>
         <a href="{{ url_for('inventory.count_inventory') }}" class="btn btn-outline-secondary btn-sm">
             <i class="bi bi-pencil-square me-1"></i>Conteo en línea
         </a>
         <a href="{{ url_for('inventory.discrepancies') }}" class="btn btn-primary btn-sm">
-            <i class="bi bi-file-earmark-spreadsheet me-1"></i>Generar discrepancias (por Excel)
+            <i class="bi bi-file-earmark-excel me-1"></i>Discrepancias (Excel)
         </a>
     </div>
 </div>
 
+<!-- PANEL DE FILTROS -->
+<div class="card border-0 shadow-sm mb-3">
+    <div class="card-body">
 
-<div class="card shadow-sm">
-    <div class="card-body table-responsive">
-        <table class="table table-sm table-hover align-middle">
-            <thead class="table-dark">
-                <tr>
-                    <th>Código Material</th>
-                    <th>Descripción</th>
-                    <th>Unidad</th>
-                    <th>Ubicación</th>
-                    <th class="text-end">Libre utilización</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for item in items %}
-                    <tr>
-                        <td>{{ item.material_code }}</td>
-                        <td>{{ item.material_text }}</td>
-                        <td>{{ item.base_unit }}</td>
-                        <td>{{ item.location }}</td>
-                        <td class="text-end">{{ "%.2f"|format(item.libre_utilizacion) }}</td>
-                    </tr>
-                {% else %}
-                    <tr>
-                        <td colspan="5" class="text-center text-muted py-4">
-                            No hay inventario cargado.
-                        </td>
-                    </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+        <div class="row g-3">
+            <div class="col-md-5">
+                <label class="form-label small text-muted">Buscar material / descripción / ubicación</label>
+                <input type="text" id="searchInput" class="form-control" placeholder="Ejemplo: tornillo, E045, brida…">
+            </div>
+
+            <div class="col-md-3">
+                <label class="form-label small text-muted">Estado</label>
+                <select id="statusFilter" class="form-select">
+                    <option value="">Todos</option>
+                    <option value="critico">Crítico (≤5)</option>
+                    <option value="bajo">Bajo (≤15)</option>
+                    <option value="normal">Normal</option>
+                    <option value="vacio">Vacío</option>
+                </select>
+            </div>
+
+            <div class="col-md-2 d-flex align-items-end">
+                <button class="btn btn-outline-secondary w-100" onclick="resetFilters()">Limpiar</button>
+            </div>
+        </div>
+
     </div>
 </div>
+
+<!-- TABLA DE INVENTARIO -->
+<div class="card shadow-sm border-0">
+    <div class="card-body p-0">
+
+        <div class="table-responsive" style="max-height:70vh; overflow-y:auto;">
+            <table class="table table-hover table-sm align-middle mb-0" id="inventoryTable">
+
+                <thead class="table-dark">
+                    <tr>
+                        <th>Código</th>
+                        <th>Descripción</th>
+                        <th>Unidad</th>
+                        <th>Ubicación</th>
+                        <th class="text-end">Libre utilización</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+
+                    {% for item in items %}
+                        {% set st = item.status %}
+                        <tr data-status="{{ st }}" data-text="{{ item.material_code }} {{ item.material_text }} {{ item.location }}">
+
+                            <td class="fw-bold">{{ item.material_code }}</td>
+                            <td>{{ item.material_text }}</td>
+                            <td>{{ item.base_unit }}</td>
+                            <td><span class="badge bg-dark">{{ item.location }}</span></td>
+                            <td class="text-end fw-bold">{{ "%.2f"|format(item.libre_utilizacion) }}</td>
+
+                            <td>
+                                {% if st == 'critico' %}
+                                    <span class="badge bg-danger">Crítico</span>
+                                {% elif st == 'bajo' %}
+                                    <span class="badge bg-warning text-dark">Bajo</span>
+                                {% elif st == 'normal' %}
+                                    <span class="badge bg-success">Normal</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">Vacío</span>
+                                {% endif %}
+                            </td>
+
+                        </tr>
+                    {% else %}
+                        <tr>
+                            <td colspan="6" class="text-center text-muted py-4">No hay inventario cargado.</td>
+                        </tr>
+                    {% endfor %}
+
+                </tbody>
+
+            </table>
+        </div>
+
+    </div>
+</div>
+
+<script>
+function applyFilters() {
+    const text = document.getElementById("searchInput").value.toLowerCase();
+    const status = document.getElementById("statusFilter").value;
+
+    document.querySelectorAll("#inventoryTable tbody tr").forEach(row => {
+        let rowText = row.dataset.text.toLowerCase();
+        let rowStatus = row.dataset.status;
+
+        let visible = true;
+
+        if (text && !rowText.includes(text))
+            visible = false;
+
+        if (status && rowStatus !== status)
+            visible = false;
+
+        row.style.display = visible ? "" : "none";
+    });
+}
+
+function resetFilters() {
+    document.getElementById("searchInput").value = "";
+    document.getElementById("statusFilter").value = "";
+    applyFilters();
+}
+
+document.getElementById("searchInput").addEventListener("keyup", applyFilters);
+document.getElementById("statusFilter").addEventListener("change", applyFilters);
+</script>
+
 {% endblock %}
