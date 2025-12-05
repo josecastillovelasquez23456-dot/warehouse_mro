@@ -5,6 +5,7 @@ from models import db
 from models.user import User
 from routes import register_blueprints
 import os
+
 # ==============================
 # LOGIN MANAGER
 # ==============================
@@ -24,6 +25,11 @@ def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
 
+    # Crear carpetas de manera segura (Render friendly)
+    for folder in [Config.UPLOAD_FOLDER, Config.REPORT_FOLDER]:
+        if not os.path.exists(folder):
+            os.makedirs(folder, exist_ok=True)
+
     # Inicializar extensiones
     db.init_app(app)
     login_manager.init_app(app)
@@ -36,7 +42,7 @@ def create_app():
     def format_fecha(value):
         try:
             return value.strftime("%d/%m/%Y %H:%M")
-        except Exception:
+        except:
             return value
 
     # Ruta raíz
@@ -46,24 +52,12 @@ def create_app():
 
     # Crear tablas y OWNER
     with app.app_context():
-        from models.user import User
-        from models.inventory import InventoryItem
-        from models.bultos import Bulto
-        from models.alerts import Alert
-        from models.technician_error import TechnicianError
-        from models.equipos import Equipo
-        from models.productividad import Productividad
-        from models.auditoria import Auditoria
-        from models.alertas_ai import AlertaIA
-
         print("\n>>> Creando tablas si no existen...")
         db.create_all()
         db.session.commit()
-        print(">>> Tablas creadas.\n")
+        print(">>> Tablas listas.\n")
 
-        # ============================
-        # CREAR TU USUARIO OWNER AQUÍ
-        # ============================
+        # CREACIÓN / VERIFICACIÓN DEL OWNER
         owner_email = "jose.castillo@sider.com.pe"
         owner_username = "JCASTI15"
         owner_password = "Admin123#"
@@ -87,20 +81,17 @@ def create_app():
 
             print(">>> OWNER creado correctamente.")
         else:
-            # Reforzar que siempre sea OWNER
             owner.role = "owner"
             owner.email_confirmed = True
             db.session.commit()
-            print(">>> OWNER verificado y actualizado.")
+            print(">>> OWNER verificado.")
 
     return app
 
 
 # ==============================
-# EJECUTAR SERVIDOR LOCAL
+# EJECUTAR LOCAL
 # ==============================
-
 if __name__ == "__main__":
+    app = create_app()
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 8080)))
-
-
