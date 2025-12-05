@@ -61,8 +61,15 @@
     </div>
 
     <div class="col text-end">
-        <a href="{{ url_for('bultos.new_bulto') }}" class="btn btn-add">
+
+        <!-- 🔥 BOTÓN REGISTRAR BULTOS -->
+        <a href="{{ url_for('bultos.new_bulto') }}" class="btn btn-add me-2">
             ➕ Registrar Nuevo Bulto
+        </a>
+
+        <!-- 🔥 BOTÓN POST-REGISTRO GENERAL -->
+        <a href="{{ url_for('bultos.list_bultos') }}" class="btn btn-warning fw-bold">
+            📝 Post-Registro
         </a>
     </div>
 </div>
@@ -171,7 +178,6 @@ new Chart(document.getElementById("donut_trailers"), {
     }
 });
 
-
 new Chart(document.getElementById("bar_dias"), {
     type: "bar",
     data: {
@@ -183,7 +189,6 @@ new Chart(document.getElementById("bar_dias"), {
         }]
     }
 });
-
 
 new Chart(document.getElementById("bar_sem"), {
     type: "bar",
@@ -197,7 +202,6 @@ new Chart(document.getElementById("bar_sem"), {
     }
 });
 
-
 new Chart(document.getElementById("bar_mes"), {
     type: "bar",
     data: {
@@ -209,7 +213,6 @@ new Chart(document.getElementById("bar_mes"), {
         }]
     }
 });
-
 
 new Chart(document.getElementById("line_incons"), {
     type: "line",
@@ -224,7 +227,6 @@ new Chart(document.getElementById("line_incons"), {
         }]
     }
 });
-
 
 new Chart(document.getElementById("bar_faltante"), {
     type: "bar",
