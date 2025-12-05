@@ -1,3 +1,5 @@
+# routes/inventory_routes.py
+import uuid
 from datetime import datetime
 
 import pandas as pd
@@ -16,6 +18,7 @@ from sqlalchemy import func
 from models import db
 from models.inventory import InventoryItem
 from models.alerts import Alert
+from models.inventory_history import InventoryHistory
 from utils.validators import roles_required
 from utils.excel import (
     load_inventory_excel,
@@ -28,18 +31,22 @@ inventory_bp = Blueprint("inventory", __name__, url_prefix="/inventory")
 
 
 # =====================================================================================
-#                                  CARGA INVENTARIO
+#                           CARGA INVENTARIO BASE (SISTEMA)
 # =====================================================================================
 
 @inventory_bp.route("/upload", methods=["GET", "POST"])
 @login_required
+@roles_required("admin")  # si quieres que solo admin cargue inventario
 def upload_inventory():
     """
     Carga el inventario base desde Excel (sistema).
-    Usa el validador flexible load_inventory_excel.
+    - Sobrescribe la tabla InventoryItem
+    - Guarda un snapshot en InventoryHistory para histórico
     """
     if request.method == "POST":
         file = request.files.get("file")
+        snapshot_name = request.form.get("snapshot_name", "").strip()
+
         if not file:
             flash("Debe seleccionar un archivo de Excel.", "warning")
             return redirect(url_for("inventory.upload_inventory"))
@@ -53,27 +60,118 @@ def upload_inventory():
             flash("Error al leer el archivo de inventario. Verifique el formato.", "danger")
             return redirect(url_for("inventory.upload_inventory"))
 
+        if df.empty:
+            flash("El archivo de inventario está vacío.", "warning")
+            return redirect(url_for("inventory.upload_inventory"))
+
+        # Normalizar columnas clave
+        df["Código del Material"] = df["Código del Material"].astype(str).str.strip()
+        df["Texto breve de material"] = df["Texto breve de material"].astype(str).str.strip()
+        df["Unidad de medida base"] = df["Unidad de medida base"].astype(str).str.strip()
+        df["Ubicación"] = df["Ubicación"].astype(str).str.strip()
+        df["Libre utilización"] = df["Libre utilización"].fillna(0).astype(float)
+
         # Limpiamos inventario anterior
         InventoryItem.query.delete()
         db.session.commit()
 
-        # Insertamos nuevo inventario
+        # Insertamos nuevo inventario actual
         for _, row in df.iterrows():
             item = InventoryItem(
-                material_code=str(row["Código del Material"]).strip(),
-                material_text=str(row["Texto breve de material"]).strip(),
-                base_unit=str(row["Unidad de medida base"]).strip(),
-                location=str(row["Ubicación"]).strip(),
-                libre_utilizacion=float(row["Libre utilización"] or 0),
+                material_code=row["Código del Material"],
+                material_text=row["Texto breve de material"],
+                base_unit=row["Unidad de medida base"],
+                location=row["Ubicación"],
+                libre_utilizacion=float(row["Libre utilización"] or 0.0),
             )
-
             db.session.add(item)
 
+        # Guardar snapshot histórico
+        snapshot_id = str(uuid.uuid4())
+        if not snapshot_name:
+            snapshot_name = f"Inventario base {datetime.now().strftime('%Y-%m-%d %H:%M')}"
+
+        for _, row in df.iterrows():
+            hist = InventoryHistory(
+                snapshot_id=snapshot_id,
+                snapshot_name=snapshot_name,
+                material_code=row["Código del Material"],
+                material_text=row["Texto breve de material"],
+                base_unit=row["Unidad de medida base"],
+                location=row["Ubicación"],
+                libre_utilizacion=float(row["Libre utilización"] or 0.0),
+            )
+            db.session.add(hist)
+
         db.session.commit()
-        flash("Inventario cargado correctamente.", "success")
-        return redirect(url_for("inventory.list_inventory"))
+        flash("Inventario cargado correctamente y guardado en histórico.", "success")
+        return redirect(url_for("inventory.dashboard"))
 
     return render_template("inventory/upload.html")
+    # en el HTML puedes agregar un campo <input name="snapshot_name">
+
+
+# =====================================================================================
+#                           CARGA INVENTARIOS ANTIGUOS (HISTÓRICO)
+# =====================================================================================
+
+@inventory_bp.route("/history/upload", methods=["GET", "POST"])
+@login_required
+@roles_required("admin")
+def upload_inventory_history():
+    """
+    Permite subir Excel de inventarios antiguos SIN tocar el inventario actual.
+    Solo se guarda en InventoryHistory como snapshot.
+    """
+    if request.method == "POST":
+        file = request.files.get("file")
+        snapshot_name = request.form.get("snapshot_name", "").strip()
+
+        if not file:
+            flash("Debe seleccionar un archivo de Excel.", "warning")
+            return redirect(url_for("inventory.upload_inventory_history"))
+
+        try:
+            df = load_inventory_excel(file)
+        except ValueError as e:
+            flash(str(e), "danger")
+            return redirect(url_for("inventory.upload_inventory_history"))
+        except Exception:
+            flash("Error al leer el archivo histórico. Verifique el formato.", "danger")
+            return redirect(url_for("inventory.upload_inventory_history"))
+
+        if df.empty:
+            flash("El archivo de inventario histórico está vacío.", "warning")
+            return redirect(url_for("inventory.upload_inventory_history"))
+
+        df["Código del Material"] = df["Código del Material"].astype(str).str.strip()
+        df["Texto breve de material"] = df["Texto breve de material"].astype(str).str.strip()
+        df["Unidad de medida base"] = df["Unidad de medida base"].astype(str).str.strip()
+        df["Ubicación"] = df["Ubicación"].astype(str).str.strip()
+        df["Libre utilización"] = df["Libre utilización"].fillna(0).astype(float)
+
+        snapshot_id = str(uuid.uuid4())
+        if not snapshot_name:
+            snapshot_name = f"Inventario histórico {datetime.now().strftime('%Y-%m-%d %H:%M')}"
+
+        for _, row in df.iterrows():
+            hist = InventoryHistory(
+                snapshot_id=snapshot_id,
+                snapshot_name=snapshot_name,
+                material_code=row["Código del Material"],
+                material_text=row["Texto breve de material"],
+                base_unit=row["Unidad de medida base"],
+                location=row["Ubicación"],
+                libre_utilizacion=float(row["Libre utilización"] or 0.0),
+            )
+            db.session.add(hist)
+
+        db.session.commit()
+        flash("Inventario histórico cargado correctamente.", "success")
+        return redirect(url_for("inventory.dashboard"))
+
+    return render_template("inventory/upload_history.html")
+    # crea este template simple con campos: file + snapshot_name
 
 
 # =====================================================================================
@@ -97,6 +195,7 @@ def list_inventory():
 
 @inventory_bp.route("/discrepancies", methods=["GET", "POST"])
 @login_required
+@roles_required("admin")
 def discrepancies():
     """
     Genera discrepancias usando un Excel de conteo físico.
@@ -123,6 +222,7 @@ def discrepancies():
             counted_df["Código del Material"].astype(str).str.strip()
         )
         counted_df["Ubicación"] = counted_df["Ubicación"].astype(str).str.strip()
+        counted_df["Libre utilización"] = counted_df["Libre utilización"].fillna(0).astype(float)
 
         # Agrupamos conteo físico por Código + Ubicación
         counted_group = (
@@ -212,7 +312,7 @@ def discrepancies():
                     f"Discrepancia crítica en {r['Código Material']} - {r['Ubicación']}: "
                     f"Sistema={r['Stock sistema']}, Conteo={r['Stock contado']}."
                 )
-                alert = Alerta(
+                alert = Alert(
                     alert_type="discrepancia",
                     message=msg,
                     severity="Alta",
@@ -325,4 +425,78 @@ def count_inventory():
             "application/vnd.openxmlformats-"
             "officedocument.spreadsheetml.sheet"
         ),
+    )
+
+
+# =====================================================================================
+#                                   DASHBOARD INVENTARIO
+# =====================================================================================
+
+@inventory_bp.route("/dashboard")
+@login_required
+def dashboard():
+    """
+    Dashboard avanzado de inventario:
+    - KPIs
+    - Materiales críticos
+    - Resumen por ubicación
+    - Últimos snapshots históricos
+    - Últimas alertas
+    """
+    total_items = InventoryItem.query.count()
+    total_stock = (
+        db.session.query(func.sum(InventoryItem.libre_utilizacion)).scalar() or 0.0
+    )
+    total_ubicaciones = (
+        db.session.query(InventoryItem.location).distinct().count()
+    )
+    stock_promedio = round(total_stock / total_items, 2) if total_items else 0
+
+    # Resumen por ubicación
+    resumen_anaqueles = (
+        db.session.query(
+            InventoryItem.location,
+            func.sum(InventoryItem.libre_utilizacion).label("stock"),
+            func.count(InventoryItem.id).label("items"),
+        )
+        .group_by(InventoryItem.location)
+        .order_by(InventoryItem.location.asc())
+        .all()
+    )
+
+    # Materiales críticos (stock <= 5)
+    criticos = (
+        InventoryItem.query
+        .filter(InventoryItem.libre_utilizacion <= 5)
+        .order_by(InventoryItem.libre_utilizacion.asc())
+        .limit(20)
+        .all()
+    )
+
+    # Últimas alertas
+    alertas = Alert.query.order_by(Alert.created_at.desc()).limit(10).all()
+
+    # Últimos snapshots históricos
+    snapshots = (
+        db.session.query(
+            InventoryHistory.snapshot_id,
+            InventoryHistory.snapshot_name,
+            func.min(InventoryHistory.uploaded_at).label("fecha"),
+        )
+        .group_by(InventoryHistory.snapshot_id, InventoryHistory.snapshot_name)
+        .order_by(func.min(InventoryHistory.uploaded_at).desc())
+        .limit(10)
+        .all()
+    )
+
+    return render_template(
+        "inventory/dashboard.html",
+        total_items=total_items,
+        total_stock=total_stock,
+        total_ubicaciones=total_ubicaciones,
+        stock_promedio=stock_promedio,
+        resumen_anaqueles=resumen_anaqueles,
+        criticos=criticos,
+        alertas=alertas,
+        snapshots=snapshots,
     )
