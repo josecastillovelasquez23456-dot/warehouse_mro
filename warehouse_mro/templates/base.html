@@ -11,18 +11,37 @@
 
     <style>
         body { background: #f1f3f5; }
+
         #sidebar-wrapper {
             width: 260px;
             transition: 0.3s;
             background: #1d2125;
+            min-height: 100vh;
         }
 
         #wrapper.toggled #sidebar-wrapper { margin-left: -260px; }
 
-        .list-group-item { border: none; padding: 15px; color: white; }
-        .list-group-item:hover { background: #2c3238; }
+        .list-group-item {
+            border: none;
+            padding: 15px;
+            color: white;
+            background: #1d2125;
+        }
 
-        .navbar { background: #0d6efd !important; }
+        .list-group-item:hover {
+            background: #2c3238;
+        }
+
+        .navbar {
+            background: #0d6efd !important;
+        }
+
+        .role-title {
+            padding-left: 20px;
+            color: #f8c000;
+            font-weight: bold;
+            margin-top: 10px;
+        }
     </style>
 
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
@@ -34,96 +53,87 @@
 
 {% if current_user.is_authenticated %}
 
-    <!-- SIDEBAR -->
+    <!-- ======================== SIDEBAR ======================== -->
     <div id="sidebar-wrapper" class="border-end text-white">
 
-        <div class="sidebar-heading text-center py-4 fs-4 fw-bold">
+        <div class="sidebar-heading text-center py-4 fs-4 fw-bold bg-dark">
             <i class="bi bi-building-gear me-2"></i>WAREHOUSE MRO
         </div>
 
         <div class="list-group list-group-flush">
 
-            <a href="{{ url_for('dashboard.dashboard') }}" class="list-group-item bg-dark">
+            <a href="{{ url_for('dashboard.dashboard') }}" class="list-group-item">
                 <i class="bi bi-speedometer2 me-2"></i>Dashboard
             </a>
 
-            <a href="{{ url_for('inventory.list_inventory') }}" class="list-group-item bg-dark">
+            <a href="{{ url_for('inventory.list_inventory') }}" class="list-group-item">
                 <i class="bi bi-box-seam me-2"></i>Inventario
             </a>
 
-            <a href="{{ url_for('warehouse2d.map_view') }}" class="list-group-item bg-dark">
+            <a href="{{ url_for('warehouse2d.map_view') }}" class="list-group-item">
                 <i class="bi bi-grid-3x3-gap-fill me-2"></i>Almacén 2D
             </a>
 
-            <a href="{{ url_for('bultos.new_bulto') }}" class="list-group-item bg-dark">
+            <a href="{{ url_for('bultos.new_bulto') }}" class="list-group-item">
                 <i class="bi bi-truck me-2"></i>Bultos
             </a>
 
-            <a href="{{ url_for('technician_errors.list_errors') }}" class="list-group-item bg-dark">
+            <a href="{{ url_for('technician_errors.list_errors') }}" class="list-group-item">
                 <i class="bi bi-tools me-2"></i>Errores Técnicos
             </a>
 
-            <a href="{{ url_for('alerts.list_alerts') }}" class="list-group-item bg-dark">
+            <a href="{{ url_for('alerts.list_alerts') }}" class="list-group-item">
                 <i class="bi bi-exclamation-triangle me-2"></i>Alertas
             </a>
 
-            <a href="{{ url_for('auth.perfil_usuario') }}" class="list-group-item bg-dark">
+            <a href="{{ url_for('auth.perfil_usuario') }}" class="list-group-item">
                 <i class="bi bi-person-lines-fill me-2"></i>Mi Perfil
             </a>
 
-            <a href="{{ url_for('equipos.lista') }}" class="list-group-item bg-dark">
+            <a href="{{ url_for('equipos.lista') }}" class="list-group-item">
                 <i class="bi bi-collection me-2"></i>Lista de Equipos
             </a>
 
-            <a href="{{ url_for('equipos.nuevo') }}" class="list-group-item bg-dark">
+            <a href="{{ url_for('equipos.nuevo') }}" class="list-group-item">
                 <i class="bi bi-plus-circle me-2"></i>Registrar Equipo
             </a>
-            
-            <a href="{{ url_for('productividad.dashboard_productividad') }}" class="list-group-item bg-dark">
+
+            <a href="{{ url_for('productividad.dashboard_productividad') }}" class="list-group-item">
                 <i class="bi bi-graph-up-arrow me-2"></i>Productividades
             </a>
 
-            <a href="{{ url_for('qr.vista_qr') }}" class="list-group-item bg-dark">
+            <a href="{{ url_for('qr.vista_qr') }}" class="list-group-item">
                 <i class="bi bi-qr-code-scan me-2"></i>QR de Equipos
             </a>
 
-            <a href="{{ url_for('auditoria.vista_auditoria') }}" class="list-group-item bg-dark">
+            <a href="{{ url_for('auditoria.vista_auditoria') }}" class="list-group-item">
                 <i class="bi bi-journal-text me-2"></i>Auditoría
             </a>
 
-            <a href="{{ url_for('alertas_ai.listado_ai') }}" class="list-group-item bg-dark">
+            <a href="{{ url_for('alertas_ai.listado_ai') }}" class="list-group-item">
                 <i class="bi bi-robot me-2"></i>Alertas Inteligentes
             </a>
 
-        </div>
-    </div>
-            <!-- ==================================================== -->
-            <!--           OPCIONES SEGÚN ROL (INTEGRADO AQUÍ)        -->
-            <!-- ==================================================== -->
+
+            <!-- ======================== ROLES ======================== -->
 
             {% if current_user.role == "owner" %}
-            <hr class="text-white mx-3">
-            <a class="list-group-item bg-dark text-warning fw-bold">
-                <i class="bi bi-shield-lock-fill me-2"></i>Administración Owner
-            </a>
-
-            <a href="{{ url_for('admin_roles.listar_roles') }}" class="list-group-item bg-dark">
+            <div class="role-title"><i class="bi bi-shield-lock-fill me-2"></i>Administración Owner</div>
+            <a href="{{ url_for('admin_roles.listar_roles') }}" class="list-group-item">
                 <i class="bi bi-people-fill me-2"></i>Gestión de Roles
             </a>
             {% endif %}
 
             {% if current_user.role == "admin" %}
-            <hr class="text-white mx-3">
-            <a class="list-group-item bg-dark text-info fw-bold">
+            <div class="role-title text-info">
                 <i class="bi bi-person-badge-fill me-2"></i>Panel Admin
-            </a>
+            </div>
             {% endif %}
 
             {% if current_user.role == "user" %}
-            <hr class="text-white mx-3">
-            <a class="list-group-item bg-dark text-secondary fw-bold">
+            <div class="role-title text-secondary">
                 <i class="bi bi-person me-2"></i>Usuario Básico
-            </a>
+            </div>
             {% endif %}
 
         </div>
@@ -131,7 +141,7 @@
 
 {% endif %}
 
-    <!-- CONTENIDO -->
+    <!-- ======================== CONTENIDO ======================== -->
     <div id="page-content-wrapper">
 
         <nav class="navbar navbar-expand-lg navbar-dark px-3">
@@ -146,6 +156,7 @@
                 <span class="navbar-brand fw-bold">Sistema MRO</span>
 
                 <ul class="navbar-nav ms-auto">
+
                     {% if current_user.is_authenticated %}
                     <li class="nav-item me-3">
                         <span class="nav-link text-white">
@@ -160,6 +171,7 @@
                         </a>
                     </li>
                     {% endif %}
+
                 </ul>
 
             </div>
@@ -179,6 +191,7 @@
 
             {% block content %}{% endblock %}
         </div>
+
     </div>
 
 </div>
@@ -193,5 +206,3 @@
 
 </body>
 </html>
-
-
