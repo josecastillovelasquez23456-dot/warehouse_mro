@@ -10,7 +10,7 @@ bultos_bp = Blueprint("bultos", __name__, url_prefix="/bultos")
 
 
 # =====================================================================
-#   REGISTRO DE NUEVOS BULTOS (NECESARIO PARA EL SIDEBAR)
+#   REGISTRO DE BULTOS  (NECESARIO PARA EL SIDEBAR)
 # =====================================================================
 @bultos_bp.route("/new", methods=["GET", "POST"])
 @login_required
@@ -36,14 +36,14 @@ def new_bulto():
         db.session.add(nuevo_bulto)
         db.session.commit()
 
-        flash("Bulto registrado correctamente.", "success")
+        flash("Bulto registrado correctamente", "success")
         return redirect(url_for("bultos.new_bulto"))
 
     return render_template("bultos/form_bulto.html")
 
 
 # =====================================================================
-#   LISTA + FILTROS + KPIs
+#   LISTA + KPIs + FILTROS
 # =====================================================================
 @bultos_bp.route("/list")
 @login_required
@@ -63,8 +63,8 @@ def list_bultos():
     if desde:
         query = query.filter(Bulto.fecha_hora >= datetime.strptime(desde, "%Y-%m-%d"))
     if hasta:
-        h = datetime.strptime(hasta, "%Y-%m-%d").replace(hour=23, minute=59, second=59)
-        query = query.filter(Bulto.fecha_hora <= h)
+        hasta_dt = datetime.strptime(hasta, "%Y-%m-%d").replace(hour=23, minute=59, second=59)
+        query = query.filter(Bulto.fecha_hora <= hasta_dt)
 
     bultos = query.order_by(Bulto.fecha_hora.asc()).all()
 
@@ -82,7 +82,7 @@ def list_bultos():
 
 
 # =====================================================================
-#   LISTA PARA HACER CONTEO REAL (POST-REGISTRO)
+#   LISTA PARA HACER CONTEO REAL
 # =====================================================================
 @bultos_bp.route("/contar")
 @login_required
@@ -90,14 +90,11 @@ def contar_bultos():
 
     bultos = Bulto.query.order_by(Bulto.fecha_hora.desc()).all()
 
-    return render_template(
-        "bultos/contar_bultos.html",
-        bultos=bultos
-    )
+    return render_template("bultos/contar_bultos.html", bultos=bultos)
 
 
 # =====================================================================
-#   FORMULARIO DE POST–REGISTRO
+#   FORMULARIO DE POST–REGISTRO (CONTEO REAL)
 # =====================================================================
 @bultos_bp.route("/post/<int:bulto_id>", methods=["GET", "POST"])
 @login_required
@@ -130,17 +127,10 @@ def post_registro(bulto_id):
 
 
 # =====================================================================
-#   HISTORIAL DE POST–REGISTROS
+#   HISTORIAL DE POST-REGISTROS
 # =====================================================================
 @bultos_bp.route("/historial")
 @login_required
 def historial_post():
-
-    historial = (
-        PostRegistro
-        .query
-        .order_by(PostRegistro.fecha_registro.desc())
-        .all()
-    )
-
+    historial = PostRegistro.query.order_by(PostRegistro.fecha_registro.desc()).all()
     return render_template("bultos/historial_post.html", historial=historial)
