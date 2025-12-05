@@ -12,3 +12,4 @@ from .equipos import Equipo
 from .productividad import Productividad
 from .auditoria import Auditoria
 from .alertas_ai import AlertaIA
+from .inventory_history import InventoryHistory
