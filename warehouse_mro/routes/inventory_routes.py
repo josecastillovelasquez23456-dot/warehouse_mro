@@ -1,4 +1,4 @@
-# routes/inventory_routes.py
+import io
 import uuid
 from datetime import datetime
 
@@ -500,3 +500,4 @@ def dashboard():
         alertas=alertas,
         snapshots=snapshots,
     )
+
