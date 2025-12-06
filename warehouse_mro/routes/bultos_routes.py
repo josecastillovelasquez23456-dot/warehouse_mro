@@ -160,34 +160,32 @@ def post_registro(bulto_id):
     bulto = Bulto.query.get_or_404(bulto_id)
 
     if request.method == "POST":
-
-        real_raw = request.form.get("cantidad_real", "0")
         try:
-            real = int(real_raw)
+            real = int(request.form.get("cantidad_real", "0"))
         except ValueError:
             real = 0
 
         diferencia = real - bulto.cantidad
 
-        nuevo_post = PostRegistro(
+        fecha_registro = datetime.now(ZoneInfo("America/Lima"))
+
+        nuevo = PostRegistro(
             bulto_id=bulto.id,
             cantidad_sistema=bulto.cantidad,
             cantidad_real=real,
             diferencia=diferencia,
             observacion=request.form.get("observacion", ""),
             registrado_por=current_user.username,
-            fecha_registro=datetime.utcnow()
+            fecha_registro=fecha_registro
         )
 
-        db.session.add(nuevo_post)
+        db.session.add(nuevo)
         db.session.commit()
 
         flash("Conteo registrado correctamente.", "success")
         return redirect(url_for("bultos.historial_post"))
 
     return render_template("bultos/post_registro.html", bulto=bulto)
-
-
 
 # =====================================================================
 #   HISTORIAL COMPLETO
@@ -197,5 +195,6 @@ def post_registro(bulto_id):
 def historial_post():
     historial = PostRegistro.query.order_by(PostRegistro.fecha_registro.desc()).all()
     return render_template("bultos/historial_post.html", historial=historial)
+
 
 
