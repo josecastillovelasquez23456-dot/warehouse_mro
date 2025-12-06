@@ -31,12 +31,12 @@ inventory_bp = Blueprint("inventory", __name__, url_prefix="/inventory")
 
 
 # =====================================================================================
-#                           CARGA INVENTARIO BASE (SISTEMA)
+#                           CARGA INVENTARIO BASE (TODOS LOS ROLES)
 # =====================================================================================
 
 @inventory_bp.route("/upload", methods=["GET", "POST"])
 @login_required
-@roles_required("admin", "owner", "user")   # ← TODOS PUEDEN
+@roles_required("owner", "admin", "user")
 def upload_inventory():
     if request.method == "POST":
         file = request.files.get("file")
@@ -48,18 +48,15 @@ def upload_inventory():
 
         try:
             df = load_inventory_excel(file)
-        except ValueError as e:
-            flash(str(e), "danger")
-            return redirect(url_for("inventory.upload_inventory"))
         except Exception:
-            flash("Error al leer el archivo de inventario. Verifique el formato.", "danger")
+            flash("Error al procesar el archivo. Verifique que sea un Excel válido.", "danger")
             return redirect(url_for("inventory.upload_inventory"))
 
         if df.empty:
-            flash("El archivo de inventario está vacío.", "warning")
+            flash("El archivo está vacío.", "warning")
             return redirect(url_for("inventory.upload_inventory"))
 
-        # Normalización
+        # Normalizar columnas
         df["Código del Material"] = df["Código del Material"].astype(str).str.strip()
         df["Texto breve de material"] = df["Texto breve de material"].astype(str).str.strip()
         df["Unidad de medida base"] = df["Unidad de medida base"].astype(str).str.strip()
@@ -70,7 +67,7 @@ def upload_inventory():
         InventoryItem.query.delete()
         db.session.commit()
 
-        # Guardar inventario nuevo
+        # Insertar inventario nuevo
         for _, row in df.iterrows():
             item = InventoryItem(
                 material_code=row["Código del Material"],
@@ -81,7 +78,7 @@ def upload_inventory():
             )
             db.session.add(item)
 
-        # Guardar snapshot histórico
+        # Snapshot histórico
         snapshot_id = str(uuid.uuid4())
         if not snapshot_name:
             snapshot_name = f"Inventario base {datetime.now().strftime('%Y-%m-%d %H:%M')}"
@@ -99,19 +96,19 @@ def upload_inventory():
             db.session.add(hist)
 
         db.session.commit()
-        flash("Inventario cargado y almacenado en histórico.", "success")
+        flash("Inventario cargado correctamente.", "success")
         return redirect(url_for("inventory.dashboard"))
 
     return render_template("inventory/upload.html")
 
 
 # =====================================================================================
-#                           CARGA INVENTARIOS ANTIGUOS
+#                           CARGA HISTÓRICOS (TODOS LOS ROLES)
 # =====================================================================================
 
 @inventory_bp.route("/history/upload", methods=["GET", "POST"])
 @login_required
-@roles_required("admin", "owner", "user")   # ← AHORA TODOS PUEDEN
+@roles_required("owner", "admin", "user")
 def upload_inventory_history():
     if request.method == "POST":
         file = request.files.get("file")
@@ -124,7 +121,7 @@ def upload_inventory_history():
         try:
             df = load_inventory_excel(file)
         except Exception:
-            flash("Error al leer el archivo histórico.", "danger")
+            flash("No se pudo leer el archivo. Asegúrese de que sea un Excel válido.", "danger")
             return redirect(url_for("inventory.upload_inventory_history"))
 
         if df.empty:
@@ -154,14 +151,14 @@ def upload_inventory_history():
             db.session.add(hist)
 
         db.session.commit()
-        flash("Inventario histórico cargado correctamente.", "success")
+        flash("Histórico cargado correctamente.", "success")
         return redirect(url_for("inventory.dashboard"))
 
     return render_template("inventory/upload_history.html")
 
 
 # =====================================================================================
-#                                   LISTA INVENTARIO
+#                               LISTADO DE INVENTARIO
 # =====================================================================================
 
 @inventory_bp.route("/list")
@@ -173,17 +170,18 @@ def list_inventory():
 
 
 # =====================================================================================
-#                           DISCREPANCIAS EXCEL
+#                            DISCREPANCIAS CON EXCEL
 # =====================================================================================
 
 @inventory_bp.route("/discrepancies", methods=["GET", "POST"])
 @login_required
-@roles_required("admin", "owner", "user")   # ← YA NO TE BOTARÁ
+@roles_required("owner", "admin", "user")
 def discrepancies():
     if request.method == "POST":
         file = request.files.get("file")
+
         if not file:
-            flash("Seleccione un archivo de conteo físico.", "warning")
+            flash("Seleccione un archivo de discrepancias.", "warning")
             return redirect(url_for("inventory.discrepancies"))
 
         try:
@@ -232,9 +230,12 @@ def discrepancies():
         estados = []
         for _, r in merged.iterrows():
             diff = r["Diferencia"]
-            if diff == 0: estado = "OK"
-            elif diff < 0: estado = "CRÍTICO" if diff <= -10 else "FALTA"
-            else: estado = "SOBRA"
+            if diff == 0:
+                estado = "OK"
+            elif diff < 0:
+                estado = "CRÍTICO" if diff <= -10 else "FALTA"
+            else:
+                estado = "SOBRA"
             estados.append(estado)
 
         merged["Estado"] = estados
@@ -266,7 +267,7 @@ def discrepancies():
 
 
 # =====================================================================================
-#                                    CONTEO HTML
+#                             CONTEO HTML (MANUAL)
 # =====================================================================================
 
 @inventory_bp.route("/count", methods=["GET", "POST"])
@@ -281,9 +282,9 @@ def count_inventory():
     filas = []
 
     for item in items:
-        raw_val = request.form.get(f"count_{item.id}", "").strip()
+        raw = request.form.get(f"count_{item.id}", "").strip()
         try:
-            contado = float(raw_val) if raw_val != "" else 0
+            contado = float(raw) if raw else 0
         except:
             contado = 0
 
@@ -316,7 +317,7 @@ def count_inventory():
 
 
 # =====================================================================================
-#                                 DASHBOARD
+#                               DASHBOARD INVENTARIO
 # =====================================================================================
 
 @inventory_bp.route("/dashboard")
