@@ -4,7 +4,8 @@ from models.bultos import Bulto, PostRegistro
 from models import db
 from datetime import datetime
 import calendar
-
+from zoneinfo import ZoneInfo
+from datetime import datetime
 bultos_bp = Blueprint("bultos", __name__, url_prefix="/bultos")
 
 
@@ -15,29 +16,25 @@ bultos_bp = Blueprint("bultos", __name__, url_prefix="/bultos")
 @login_required
 def new_bulto():
     if request.method == "POST":
-
-        # ===================== CANTIDAD =====================
-        cantidad_raw = request.form.get("cantidad", "0")
         try:
-            cantidad = int(cantidad_raw)
+            cantidad = int(request.form.get("cantidad", "0"))
         except ValueError:
             cantidad = 0
 
-        # ===================== CAMPOS =====================
         chofer = request.form.get("chofer", "").strip()
         placa = request.form.get("placa", "").strip()
         observacion = request.form.get("observacion", "").strip()
 
-        # ===================== FECHA AUTOMÁTICA =====================
-        fecha_hora = datetime.utcnow()
+        # HORA REAL DE PERÚ
+        fecha_hora = datetime.now(ZoneInfo("America/Lima"))
 
         nuevo_bulto = Bulto(
             cantidad=cantidad,
             chofer=chofer,
             placa=placa,
-            fecha_hora=fecha_hora,     # ← FECHA AUTOMÁTICA
+            fecha_hora=fecha_hora,
             observacion=observacion,
-            creado_en=datetime.utcnow()
+            creado_en=fecha_hora
         )
 
         db.session.add(nuevo_bulto)
@@ -47,7 +44,6 @@ def new_bulto():
         return redirect(url_for("bultos.new_bulto"))
 
     return render_template("bultos/form_bulto.html")
-
 # =====================================================================
 #   LISTA + KPIs + GRÁFICOS
 # =====================================================================
@@ -201,4 +197,5 @@ def post_registro(bulto_id):
 def historial_post():
     historial = PostRegistro.query.order_by(PostRegistro.fecha_registro.desc()).all()
     return render_template("bultos/historial_post.html", historial=historial)
+
 
