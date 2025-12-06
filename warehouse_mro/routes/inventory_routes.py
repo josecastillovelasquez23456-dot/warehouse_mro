@@ -36,7 +36,7 @@ inventory_bp = Blueprint("inventory", __name__, url_prefix="/inventory")
 
 @inventory_bp.route("/upload", methods=["GET", "POST"])
 @login_required
-@roles_required("admin")  # si quieres que solo admin cargue inventario
+@roles_required("admin", "owner")  # <-- AHORA PERMITE ADMIN Y OWNER
 def upload_inventory():
     """
     Carga el inventario base desde Excel (sistema).
@@ -117,7 +117,7 @@ def upload_inventory():
 
 @inventory_bp.route("/history/upload", methods=["GET", "POST"])
 @login_required
-@roles_required("admin")
+@roles_required("admin", "owner")  # <-- IGUAL, ADMIN Y OWNER
 def upload_inventory_history():
     """
     Permite subir Excel de inventarios antiguos SIN tocar el inventario actual.
@@ -171,7 +171,6 @@ def upload_inventory_history():
         return redirect(url_for("inventory.dashboard"))
 
     return render_template("inventory/upload_history.html")
-    # crea este template simple con campos: file + snapshot_name
 
 
 # =====================================================================================
@@ -195,7 +194,7 @@ def list_inventory():
 
 @inventory_bp.route("/discrepancies", methods=["GET", "POST"])
 @login_required
-@roles_required("admin")
+@roles_required("admin", "owner")  # <-- SOLO ROLES AUTORIZADOS
 def discrepancies():
     """
     Genera discrepancias usando un Excel de conteo físico.
@@ -500,4 +499,3 @@ def dashboard():
         alertas=alertas,
         snapshots=snapshots,
     )
-
