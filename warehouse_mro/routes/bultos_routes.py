@@ -3,40 +3,49 @@ from flask_login import login_required, current_user
 from models.bultos import Bulto, PostRegistro
 from models import db
 from datetime import datetime
-import pandas as pd
-import io
 import calendar
 
 bultos_bp = Blueprint("bultos", __name__, url_prefix="/bultos")
 
 
 # =====================================================================
-#   REGISTRO DE BULTOS  (FORMULARIO)
+#   REGISTRO DE BULTOS
 # =====================================================================
 @bultos_bp.route("/new", methods=["GET", "POST"])
 @login_required
 def new_bulto():
+
     if request.method == "POST":
+
+        # ===================== CAMPOS =====================
+        cantidad_raw = request.form.get("cantidad", "0")
+        chofer = request.form.get("chofer", "").strip()
+        placa = request.form.get("placa", "").strip()
+        fecha_raw = request.form.get("fecha_hora", "").strip()
+        observacion = request.form.get("observacion", "").strip()
+
+        # ===================== CANTIDAD =====================
         try:
-            cantidad = int(request.form.get("cantidad", "0"))
+            cantidad = int(cantidad_raw)
         except ValueError:
             cantidad = 0
 
-        chofer = request.form.get("chofer", "").strip()
-        placa = request.form.get("placa", "").strip()
-        fecha_hora_raw = request.form.get("fecha_hora", "").strip()
-        observacion = request.form.get("observacion", "").strip()
+        # ===================== FECHA =====================
+        # Acepta:
+        #  - "2025-12-05T14:55"
+        #  - "2025-12-05 14:55"
+        #  - vacío → ahora mismo
 
-        # Si no viene fecha, se usa ahora
-        if fecha_hora_raw:
-            # HTML datetime-local → "YYYY-MM-DDTHH:MM"
+        if fecha_raw:
+            fecha_fixed = fecha_raw.replace("T", " ")
             try:
-                fecha_hora = datetime.fromisoformat(fecha_hora_raw)
+                fecha_hora = datetime.strptime(fecha_fixed, "%Y-%m-%d %H:%M")
             except ValueError:
                 fecha_hora = datetime.utcnow()
         else:
             fecha_hora = datetime.utcnow()
 
+        # ===================== CREAR BULTOS =====================
         nuevo_bulto = Bulto(
             cantidad=cantidad,
             chofer=chofer,
@@ -55,12 +64,14 @@ def new_bulto():
     return render_template("bultos/form_bulto.html")
 
 
+
 # =====================================================================
-#   LISTA + KPIs + DATOS PARA GRÁFICAS
+#   LISTA + KPIs + GRÁFICOS
 # =====================================================================
 @bultos_bp.route("/list")
 @login_required
 def list_bultos():
+
     chofer = request.args.get("chofer", "").strip()
     placa = request.args.get("placa", "").strip()
     desde = request.args.get("desde", "").strip()
@@ -68,72 +79,63 @@ def list_bultos():
 
     query = Bulto.query
 
+    # ================== FILTROS ==================
     if chofer:
         query = query.filter(Bulto.chofer.ilike(f"%{chofer}%"))
     if placa:
         query = query.filter(Bulto.placa.ilike(f"%{placa}%"))
+
     if desde:
         try:
-            desde_dt = datetime.strptime(desde, "%Y-%m-%d")
-            query = query.filter(Bulto.fecha_hora >= desde_dt)
+            d = datetime.strptime(desde, "%Y-%m-%d")
+            query = query.filter(Bulto.fecha_hora >= d)
         except ValueError:
             pass
+
     if hasta:
         try:
-            hasta_dt = datetime.strptime(hasta, "%Y-%m-%d").replace(
-                hour=23, minute=59, second=59
-            )
-            query = query.filter(Bulto.fecha_hora <= hasta_dt)
+            h = datetime.strptime(hasta, "%Y-%m-%d").replace(hour=23, minute=59)
+            query = query.filter(Bulto.fecha_hora <= h)
         except ValueError:
             pass
 
     bultos = query.order_by(Bulto.fecha_hora.asc()).all()
 
-    # ================== KPIs PRINCIPALES ==================
+    # ================== KPIs ==================
     total_bultos = sum(b.cantidad for b in bultos)
     hoy = datetime.today().date()
     bultos_hoy = sum(b.cantidad for b in bultos if b.fecha_hora.date() == hoy)
     total_trailers = len({b.placa for b in bultos if b.placa})
 
-    # ================== GRÁFICO: BULTOS POR DÍA ==================
+    # ================== BULTOS POR DÍA ==================
     graf_dia = {}
     for b in bultos:
-        clave = b.fecha_hora.strftime("%d-%m")
-        graf_dia[clave] = graf_dia.get(clave, 0) + b.cantidad
+        k = b.fecha_hora.strftime("%d-%m")
+        graf_dia[k] = graf_dia.get(k, 0) + b.cantidad
 
-    dias = []
-    bultos_dias = []
-    for d, v in sorted(graf_dia.items()):
-        dias.append(d)
-        bultos_dias.append(v)
+    dias = list(graf_dia.keys())
+    bultos_dias = list(graf_dia.values())
 
-    # ================== GRÁFICO: BULTOS POR SEMANA ==================
+    # ================== BULTOS POR SEMANA ==================
     graf_sem = {}
     for b in bultos:
-        week = b.fecha_hora.isocalendar().week
-        graf_sem[week] = graf_sem.get(week, 0) + b.cantidad
+        w = b.fecha_hora.isocalendar().week
+        graf_sem[w] = graf_sem.get(w, 0) + b.cantidad
 
-    semanas = []
-    bultos_sem = []
-    for w, v in sorted(graf_sem.items()):
-        semanas.append(f"Semana {w}")
-        bultos_sem.append(v)
-
+    semanas = [f"Semana {w}" for w in graf_sem.keys()]
+    bultos_sem = list(graf_sem.values())
     semanas_totales = len(semanas)
 
-    # ================== GRÁFICO: BULTOS POR MES ==================
+    # ================== BULTOS POR MES ==================
     graf_mes = {}
     for b in bultos:
         m = b.fecha_hora.month
         graf_mes[m] = graf_mes.get(m, 0) + b.cantidad
 
-    meses = []
-    bultos_mes = []
-    for m, v in sorted(graf_mes.items()):
-        meses.append(calendar.month_name[m])  # "January", "February", ...
-        bultos_mes.append(v)
+    meses = [calendar.month_name[m] for m in graf_mes.keys()]
+    bultos_mes = list(graf_mes.values())
 
-    # ================== INCONSISTENCIAS (PLACEHOLDER POR AHORA) ==================
+    # Placeholder de inconsistencias
     inconsistencias_mes = [0] * len(meses)
     faltante_mes = [0] * len(meses)
     inconsistencias = sum(inconsistencias_mes)
@@ -157,8 +159,9 @@ def list_bultos():
     )
 
 
+
 # =====================================================================
-#   LISTA PARA HACER CONTEO REAL
+#   PANTALLA DE CONTEO REAL
 # =====================================================================
 @bultos_bp.route("/contar")
 @login_required
@@ -167,33 +170,37 @@ def contar_bultos():
     return render_template("bultos/contar_bultos.html", bultos=bultos)
 
 
+
 # =====================================================================
-#   FORMULARIO DE POST–REGISTRO (CONTEO REAL)
+#   FORMULARIO DE POST REGISTRO
 # =====================================================================
 @bultos_bp.route("/post/<int:bulto_id>", methods=["GET", "POST"])
 @login_required
 def post_registro(bulto_id):
+
     bulto = Bulto.query.get_or_404(bulto_id)
 
     if request.method == "POST":
+
+        real_raw = request.form.get("cantidad_real", "0")
         try:
-            real = int(request.form.get("cantidad_real", "0"))
+            real = int(real_raw)
         except ValueError:
             real = 0
 
         diferencia = real - bulto.cantidad
 
-        nuevo = PostRegistro(
+        nuevo_post = PostRegistro(
             bulto_id=bulto.id,
             cantidad_sistema=bulto.cantidad,
             cantidad_real=real,
             diferencia=diferencia,
             observacion=request.form.get("observacion", ""),
             registrado_por=current_user.username,
-            fecha_registro=datetime.utcnow(),
+            fecha_registro=datetime.utcnow()
         )
 
-        db.session.add(nuevo)
+        db.session.add(nuevo_post)
         db.session.commit()
 
         flash("Conteo registrado correctamente.", "success")
@@ -202,13 +209,12 @@ def post_registro(bulto_id):
     return render_template("bultos/post_registro.html", bulto=bulto)
 
 
+
 # =====================================================================
-#   HISTORIAL DE POST-REGISTROS
+#   HISTORIAL COMPLETO
 # =====================================================================
 @bultos_bp.route("/historial")
 @login_required
 def historial_post():
-    historial = (
-        PostRegistro.query.order_by(PostRegistro.fecha_registro.desc()).all()
-    )
+    historial = PostRegistro.query.order_by(PostRegistro.fecha_registro.desc()).all()
     return render_template("bultos/historial_post.html", historial=historial)
