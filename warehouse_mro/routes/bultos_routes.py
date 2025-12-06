@@ -14,43 +14,28 @@ bultos_bp = Blueprint("bultos", __name__, url_prefix="/bultos")
 @bultos_bp.route("/new", methods=["GET", "POST"])
 @login_required
 def new_bulto():
-
     if request.method == "POST":
 
-        # ===================== CAMPOS =====================
-        cantidad_raw = request.form.get("cantidad", "0")
-        chofer = request.form.get("chofer", "").strip()
-        placa = request.form.get("placa", "").strip()
-        fecha_raw = request.form.get("fecha_hora", "").strip()
-        observacion = request.form.get("observacion", "").strip()
-
         # ===================== CANTIDAD =====================
+        cantidad_raw = request.form.get("cantidad", "0")
         try:
             cantidad = int(cantidad_raw)
         except ValueError:
             cantidad = 0
 
-        # ===================== FECHA =====================
-        # Acepta:
-        #  - "2025-12-05T14:55"
-        #  - "2025-12-05 14:55"
-        #  - vacío → ahora mismo
+        # ===================== CAMPOS =====================
+        chofer = request.form.get("chofer", "").strip()
+        placa = request.form.get("placa", "").strip()
+        observacion = request.form.get("observacion", "").strip()
 
-        if fecha_raw:
-            fecha_fixed = fecha_raw.replace("T", " ")
-            try:
-                fecha_hora = datetime.strptime(fecha_fixed, "%Y-%m-%d %H:%M")
-            except ValueError:
-                fecha_hora = datetime.utcnow()
-        else:
-            fecha_hora = datetime.utcnow()
+        # ===================== FECHA AUTOMÁTICA =====================
+        fecha_hora = datetime.utcnow()
 
-        # ===================== CREAR BULTOS =====================
         nuevo_bulto = Bulto(
             cantidad=cantidad,
             chofer=chofer,
             placa=placa,
-            fecha_hora=fecha_hora,
+            fecha_hora=fecha_hora,     # ← FECHA AUTOMÁTICA
             observacion=observacion,
             creado_en=datetime.utcnow()
         )
@@ -62,8 +47,6 @@ def new_bulto():
         return redirect(url_for("bultos.new_bulto"))
 
     return render_template("bultos/form_bulto.html")
-
-
 
 # =====================================================================
 #   LISTA + KPIs + GRÁFICOS
@@ -218,3 +201,4 @@ def post_registro(bulto_id):
 def historial_post():
     historial = PostRegistro.query.order_by(PostRegistro.fecha_registro.desc()).all()
     return render_template("bultos/historial_post.html", historial=historial)
+
