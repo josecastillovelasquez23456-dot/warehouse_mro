@@ -79,58 +79,53 @@
                 <i class="bi bi-speedometer2 me-2"></i>Dashboard
             </a>
 
+<!-- ======================== INVENTARIO ======================== -->
+<div class="accordion accordion-flush" id="accordionInventory">
 
-            <!-- ======================== INVENTARIO (PROFESIONAL) ======================== -->
-            <div class="accordion" id="accordionInventory">
-                <div class="accordion-item bg-dark border-0">
+    <div class="accordion-item bg-dark border-0">
 
-                    <h2 class="accordion-header">
-                        <button class="accordion-button collapsed" type="button"
-                                data-bs-toggle="collapse" data-bs-target="#collapseInventory">
-                            <i class="bi bi-box-seam me-2"></i>Inventario
-                        </button>
-                    </h2>
+        <h2 class="accordion-header">
+            <button class="accordion-button collapsed bg-dark text-white"
+                    type="button"
+                    data-bs-toggle="collapse"
+                    data-bs-target="#inventoryMenu">
+                <i class="bi bi-box-seam me-2"></i> Inventario
+            </button>
+        </h2>
 
-                    <div id="collapseInventory" class="accordion-collapse collapse">
-                        <div class="accordion-body p-0">
+        <div id="inventoryMenu" class="accordion-collapse collapse" data-bs-parent="#accordionInventory">
+            <div class="accordion-body p-0">
 
-                            <a href="{{ url_for('inventory.dashboard') }}"
-                               class="list-group-item bg-dark text-white">
-                                📊 Dashboard Inventario
-                            </a>
+                <a href="{{ url_for('inventory.dashboard') }}" class="list-group-item bg-dark text-white">
+                    📊 Dashboard Inventario
+                </a>
 
-                            <a href="{{ url_for('inventory.list_inventory') }}"
-                               class="list-group-item bg-dark text-white">
-                                📚 Inventario actual
-                            </a>
+                <a href="{{ url_for('inventory.list_inventory') }}" class="list-group-item bg-dark text-white">
+                    📚 Inventario actual
+                </a>
 
-                            <a href="{{ url_for('inventory.upload_inventory') }}"
-                               class="list-group-item bg-dark text-white">
-                                ⬆ Cargar inventario base
-                            </a>
+                <a href="{{ url_for('inventory.upload_inventory') }}" class="list-group-item bg-dark text-white">
+                    ⬆ Cargar inventario base
+                </a>
 
-                            <a href="{{ url_for('inventory.upload_inventory_history') }}"
-                               class="list-group-item bg-dark text-white">
-                                🕒 Subir inventarios antiguos
-                            </a>
+                <a href="{{ url_for('inventory.upload_inventory_history') }}" class="list-group-item bg-dark text-white">
+                    🕒 Subir inventarios antiguos
+                </a>
 
-                            <a href="{{ url_for('inventory.count_inventory') }}"
-                               class="list-group-item bg-dark text-white">
-                                ✍ Conteo en línea
-                            </a>
+                <a href="{{ url_for('inventory.count_inventory') }}" class="list-group-item bg-dark text-white">
+                    ✍ Conteo en línea
+                </a>
 
-                            <a href="{{ url_for('inventory.discrepancies') }}"
-                               class="list-group-item bg-dark text-white">
-                                ⚠ Discrepancias (Excel)
-                            </a>
+                <a href="{{ url_for('inventory.discrepancies') }}" class="list-group-item bg-dark text-white">
+                    ⚠ Discrepancias (Excel)
+                </a>
 
-                        </div>
-                    </div>
-
-                </div>
             </div>
-            <!-- ======================== FIN INVENTARIO ======================== -->
+        </div>
 
+    </div>
+</div>
+<!-- ======================== FIN INVENTARIO ======================== -->
 
             <!-- ======================== ALMACÉN 2D ======================== -->
             <a href="{{ url_for('warehouse2d.map_view') }}" class="list-group-item">
@@ -307,3 +302,4 @@
 
 </body>
 </html>
+
