@@ -32,81 +32,108 @@ inventory_bp = Blueprint("inventory", __name__, url_prefix="/inventory")
 # =====================================================================================
 #                           CARGA INVENTARIO BASE (SISTEMA)
 # =====================================================================================
-
 @inventory_bp.route("/upload", methods=["GET", "POST"])
 @login_required
+@roles_required("admin", "owner", "user")
 def upload_inventory():
-    """
-    Carga el inventario base desde Excel (sistema).
-    - Sobrescribe la tabla InventoryItem
-    - Guarda un snapshot en InventoryHistory para histórico
-    """
+    import os
+
     if request.method == "POST":
         file = request.files.get("file")
         snapshot_name = request.form.get("snapshot_name", "").strip()
 
-        if not file:
+        if not file or file.filename == "":
             flash("Debe seleccionar un archivo de Excel.", "warning")
             return redirect(url_for("inventory.upload_inventory"))
 
+        # Validar extensión segura
+        ext = os.path.splitext(file.filename)[1].lower()
+        if ext not in [".xlsx", ".xls"]:
+            flash("Formato no permitido. Solo se aceptan archivos .xlsx o .xls", "danger")
+            return redirect(url_for("inventory.upload_inventory"))
+
+        # === Leer Excel con carga limpia ===
         try:
             df = load_inventory_excel(file)
-        except ValueError as e:
-            flash(str(e), "danger")
-            return redirect(url_for("inventory.upload_inventory"))
-        except Exception:
-            flash("Error al leer el archivo de inventario. Verifique el formato.", "danger")
+        except Exception as e:
+            flash(f"Error al leer el archivo: {str(e)}", "danger")
             return redirect(url_for("inventory.upload_inventory"))
 
         if df.empty:
             flash("El archivo de inventario está vacío.", "warning")
             return redirect(url_for("inventory.upload_inventory"))
 
-        # Normalización
+        # Normalizar columnas
+        required_cols = [
+            "Código del Material",
+            "Texto breve de material",
+            "Unidad de medida base",
+            "Ubicación",
+            "Libre utilización"
+        ]
+
+        for col in required_cols:
+            if col not in df.columns:
+                flash(f"Falta la columna obligatoria: {col}", "danger")
+                return redirect(url_for("inventory.upload_inventory"))
+
         df["Código del Material"] = df["Código del Material"].astype(str).str.strip()
         df["Texto breve de material"] = df["Texto breve de material"].astype(str).str.strip()
         df["Unidad de medida base"] = df["Unidad de medida base"].astype(str).str.strip()
         df["Ubicación"] = df["Ubicación"].astype(str).str.strip()
         df["Libre utilización"] = df["Libre utilización"].fillna(0).astype(float)
 
-        # Borrar inventario anterior
-        InventoryItem.query.delete()
-        db.session.commit()
+        # === Resetear inventario actual ===
+        try:
+            InventoryItem.query.delete()
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+            flash("Error eliminando inventario previo.", "danger")
+            return redirect(url_for("inventory.upload_inventory"))
 
-        # Guardar inventario nuevo (actual)
-        for _, row in df.iterrows():
-            item = InventoryItem(
-                material_code=row["Código del Material"],
-                material_text=row["Texto breve de material"],
-                base_unit=row["Unidad de medida base"],
-                location=row["Ubicación"],
-                libre_utilizacion=float(row["Libre utilización"]),
-            )
-            db.session.add(item)
+        # === Guardar inventario nuevo ===
+        try:
+            for _, row in df.iterrows():
+                item = InventoryItem(
+                    material_code=row["Código del Material"],
+                    material_text=row["Texto breve de material"],
+                    base_unit=row["Unidad de medida base"],
+                    location=row["Ubicación"],
+                    libre_utilizacion=float(row["Libre utilización"])
+                )
+                db.session.add(item)
 
-        # Guardar snapshot histórico
-        snapshot_id = str(uuid.uuid4())
-        if not snapshot_name:
-            snapshot_name = f"Inventario base {datetime.now().strftime('%Y-%m-%d %H:%M')}"
+            # Guardar snapshot histórico
+            import uuid
+            snap_id = str(uuid.uuid4())
 
-        for _, row in df.iterrows():
-            hist = InventoryHistory(
-                snapshot_id=snapshot_id,
-                snapshot_name=snapshot_name,
-                material_code=row["Código del Material"],
-                material_text=row["Texto breve de material"],
-                base_unit=row["Unidad de medida base"],
-                location=row["Ubicación"],
-                libre_utilizacion=float(row["Libre utilización"]),
-            )
-            db.session.add(hist)
+            if not snapshot_name:
+                snapshot_name = f"Inventario base {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
 
-        db.session.commit()
-        flash("Inventario cargado y almacenado en histórico.", "success")
+            for _, row in df.iterrows():
+                hist = InventoryHistory(
+                    snapshot_id=snap_id,
+                    snapshot_name=snapshot_name,
+                    material_code=row["Código del Material"],
+                    material_text=row["Texto breve de material"],
+                    base_unit=row["Unidad de medida base"],
+                    location=row["Ubicación"],
+                    libre_utilizacion=float(row["Libre utilización"])
+                )
+                db.session.add(hist)
+
+            db.session.commit()
+
+        except Exception as e:
+            db.session.rollback()
+            flash(f"Error guardando inventario: {str(e)}", "danger")
+            return redirect(url_for("inventory.upload_inventory"))
+
+        flash("Inventario cargado correctamente y guardado en histórico.", "success")
         return redirect(url_for("inventory.dashboard"))
 
     return render_template("inventory/upload.html")
-
 
 # =====================================================================================
 #                           CARGA INVENTARIOS ANTIGUOS
@@ -384,3 +411,4 @@ def dashboard():
         alertas=alertas,
         snapshots=snapshots,
     )
+
