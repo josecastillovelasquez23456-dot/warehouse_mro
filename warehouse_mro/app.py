@@ -6,55 +6,54 @@ from models.user import User
 from routes import register_blueprints
 import os
 
-# ==========================================================
+# =====================================================
 # LOGIN MANAGER
-# ==========================================================
+# =====================================================
 login_manager = LoginManager()
 login_manager.login_view = "auth.login"
 login_manager.login_message_category = "info"
-
 
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
 
 
-# ==========================================================
-# CREATE_APP (FACTORÍA PRINCIPAL)
-# ==========================================================
+# =====================================================
+# CREATE_APP
+# =====================================================
 def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
 
-    # ======================================================
-    # 🔥 FIX #1: Permitir subida de archivos (Excel)
-    # ======================================================
-    app.config["MAX_CONTENT_LENGTH"] = 20 * 1024 * 1024  # 20 MB
-    app.config["UPLOAD_EXTENSIONS"] = [".xlsx", ".xls"]
+    # =====================================================
+    # FIX DEFINITIVO PARA RENDER (carpetas de escritura)
+    # =====================================================
+    REQUIRED_DIRS = [
+        "uploads",
+        "uploads/inventory",
+        "uploads/history",
+        "uploads/bultos",
+        "reports"
+    ]
 
-    # Carpeta de subidas segura para Render / Koyeb
-    UPLOAD_ROOT = os.path.join(app.root_path, "uploads")
-    REPORT_ROOT = os.path.join(app.root_path, "reports")
+    for d in REQUIRED_DIRS:
+        path = os.path.join(app.root_path, d)
+        try:
+            os.makedirs(path, exist_ok=True)
+            print(f"✔ Carpeta disponible: {path}")
+        except Exception as e:
+            print(f"✖ ERROR creando carpeta {path}: {e}")
 
-    os.makedirs(UPLOAD_ROOT, exist_ok=True)
-    os.makedirs(REPORT_ROOT, exist_ok=True)
-
-    # Reemplazamos rutas en Config dinámicamente
-    app.config["UPLOAD_FOLDER"] = UPLOAD_ROOT
-    app.config["REPORT_FOLDER"] = REPORT_ROOT
-
-    # ======================================================
+    # =====================================================
     # Inicializar extensiones
-    # ======================================================
+    # =====================================================
     db.init_app(app)
     login_manager.init_app(app)
 
-    # Registrar rutas / blueprints
+    # Blueprints
     register_blueprints(app)
 
-    # ======================================================
     # Filtro de fecha
-    # ======================================================
     @app.template_filter("format_fecha")
     def format_fecha(value):
         try:
@@ -62,23 +61,20 @@ def create_app():
         except:
             return value
 
-    # ======================================================
-    # Ruta raíz → Login
-    # ======================================================
+    # Ruta raíz
     @app.route("/")
     def index():
         return redirect(url_for("auth.login"))
 
-    # ======================================================
-    # Crear tablas + usuario OWNER
-    # ======================================================
+    # =====================================================
+    # Crear tablas y OWNER
+    # =====================================================
     with app.app_context():
         print("\n>>> Creando tablas si no existen...")
         db.create_all()
         db.session.commit()
         print(">>> Tablas listas.\n")
 
-        # Usuario Owner por defecto
         owner_email = "jose.castillo@sider.com.pe"
         owner_username = "JCASTI15"
         owner_password = "Admin123#"
@@ -87,7 +83,6 @@ def create_app():
 
         if not owner:
             print(">>> Creando usuario OWNER...")
-
             new_owner = User(
                 username=owner_username,
                 email=owner_email,
@@ -110,9 +105,9 @@ def create_app():
     return app
 
 
-# ==========================================================
+# =====================================================
 # EJECUTAR LOCAL
-# ==========================================================
+# =====================================================
 if __name__ == "__main__":
     app = create_app()
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 8080)))
