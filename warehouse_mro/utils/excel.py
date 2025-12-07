@@ -89,27 +89,27 @@ INV_REQUIRED = {
     "libre": "Libre utilización",
 }
 
-
 def load_inventory_excel(file_storage):
-    """Carga Excel de inventario con validación flexible (modo seguro para servidores cloud)."""
-    
-    # 🔥 FIX PARA RENDER / KOYEB → leer el archivo como bytes
-    content = file_storage.read()
-    df = pd.read_excel(io.BytesIO(content))
-    file_storage.seek(0)
+    """Carga Excel de inventario con validación compatible con Render/Koyeb."""
+
+    try:
+        # Leer DIRECTAMENTE desde el stream → evita Forbidden 403 en cloud
+        df = pd.read_excel(file_storage.stream)
+    except Exception:
+        raise ValueError("No se pudo leer el archivo Excel. Verifique el formato.")
 
     columnas_mapeadas, faltantes = mapear_columnas(df, INV_REQUIRED)
 
     if faltantes:
         raise ValueError(
-            "El archivo de inventario no tiene todas las columnas requeridas.\n"
+            "El archivo no contiene todas las columnas requeridas.\n"
             "Faltan: " + ", ".join(faltantes)
         )
 
+    # Construir DataFrame limpio con nombres oficiales
     clean = {official: df[original] for original, official in columnas_mapeadas.items()}
 
     return pd.DataFrame(clean)
-
 
 # =====================================================================================
 #                           COLUMNAS REQUERIDAS ALMACÉN 2D
@@ -274,3 +274,4 @@ def generate_discrepancies_excel(df: pd.DataFrame) -> io.BytesIO:
 
     output.seek(0)
     return output
+
