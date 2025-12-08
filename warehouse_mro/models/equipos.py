@@ -1,4 +1,4 @@
-from models import db
+from warehouse_mro.models import db
 
 class Equipo(db.Model):
     __tablename__ = "equipos"  
@@ -10,3 +10,4 @@ class Equipo(db.Model):
 
     def __repr__(self):
         return f"<Equipo {self.codigo}>"
+
