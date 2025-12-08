@@ -19,5 +19,6 @@ from .productividad import Productividad
 from .auditoria import Auditoria
 from .inventory_history import InventoryHistory
 from .warehouse2d import WarehouseLocation
-from .actividad import Actividad
+from .actividad import ActividadUsuario
 from .turnos import Turno
+
