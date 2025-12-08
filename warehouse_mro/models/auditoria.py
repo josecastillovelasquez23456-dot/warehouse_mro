@@ -1,4 +1,4 @@
-from models import db
+from warehouse_mro.models import db
 from datetime import datetime
 
 class Auditoria(db.Model):
@@ -10,3 +10,4 @@ class Auditoria(db.Model):
     modulo = db.Column(db.String(100))
     fecha = db.Column(db.DateTime, default=datetime.utcnow)
     ip = db.Column(db.String(100))
+
