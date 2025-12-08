@@ -1,8 +1,10 @@
 from flask import Blueprint, render_template
 from flask_login import login_required
 from datetime import datetime
-from models import db
-from models.user import User
+
+# IMPORTS CORRECTOS PARA RAILWAY
+from warehouse_mro.models import db
+from warehouse_mro.models.user import User
 
 auditoria_bp = Blueprint("auditoria", __name__, url_prefix="/auditoria")
 
