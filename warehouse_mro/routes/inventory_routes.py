@@ -13,10 +13,16 @@ from flask import (
 )
 from flask_login import login_required
 
-from models import db
-from models.inventory import InventoryItem
-from models.inventory_history import InventoryHistory
-from utils.excel import load_inventory_excel, sort_location_advanced, generate_discrepancies_excel
+# 📌 IMPORTS CORREGIDOS PARA RAILWAY
+from warehouse_mro.models import db
+from warehouse_mro.models.inventory import InventoryItem
+from warehouse_mro.models.inventory_history import InventoryHistory
+
+from warehouse_mro.utils.excel import (
+    load_inventory_excel,
+    sort_location_advanced,
+    generate_discrepancies_excel,
+)
 
 inventory_bp = Blueprint("inventory", __name__, url_prefix="/inventory")
 
@@ -144,9 +150,12 @@ def discrepancies():
         estados = []
         for _, r in merged.iterrows():
             d = r["Diferencia"]
-            if d == 0: estado = "OK"
-            elif d < 0: estado = "CRÍTICO" if d <= -10 else "FALTA"
-            else: estado = "SOBRA"
+            if d == 0:
+                estado = "OK"
+            elif d < 0:
+                estado = "CRÍTICO" if d <= -10 else "FALTA"
+            else:
+                estado = "SOBRA"
             estados.append(estado)
 
         merged["Estado"] = estados
