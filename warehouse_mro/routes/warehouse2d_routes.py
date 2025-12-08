@@ -1,6 +1,6 @@
 from datetime import datetime
-
 import pandas as pd
+
 from flask import (
     Blueprint,
     render_template,
@@ -12,10 +12,11 @@ from flask import (
 )
 from flask_login import login_required, current_user
 
-from models import db
-from models.warehouse2d import WarehouseLocation
-from models.alerts import Alert
-from utils.excel import load_warehouse2d_excel, sort_location_advanced
+# ✅ IMPORTS CORREGIDOS PARA RAILWAY
+from warehouse_mro.models import db
+from warehouse_mro.models.warehouse2d import WarehouseLocation
+from warehouse_mro.models.alerts import Alert
+from warehouse_mro.utils.excel import load_warehouse2d_excel, sort_location_advanced
 
 warehouse2d_bp = Blueprint("warehouse2d", __name__, url_prefix="/warehouse2d")
 
@@ -54,7 +55,7 @@ def upload_warehouse2d():
         except ValueError as e:
             flash(str(e), "danger")
             return redirect(url_for("warehouse2d.upload_warehouse2d"))
-        except Exception as e:
+        except Exception:
             flash("Error al procesar el archivo 2D. Revise formato y columnas.", "danger")
             return redirect(url_for("warehouse2d.upload_warehouse2d"))
 
@@ -148,19 +149,16 @@ def map_data():
         por_ubicacion[loc]["total_libre"] += float(item.libre_utilizacion or 0)
         por_ubicacion[loc]["items"] += 1
 
-        # El peor estado domina
         rank = STATUS_RANK.get(estado_item, 0)
         if rank > por_ubicacion[loc]["rank"]:
             por_ubicacion[loc]["rank"] = rank
             por_ubicacion[loc]["status"] = estado_item
 
-    # Ordenar ubicaciones
     data_sorted = sorted(
         por_ubicacion.values(),
         key=lambda x: sort_location_advanced(x["location"])
     )
 
-    # Quitar rank interno
     for d in data_sorted:
         d.pop("rank", None)
 
