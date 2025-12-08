@@ -1,4 +1,4 @@
-from models import db
+from warehouse_mro.models import db
 from datetime import datetime
 
 class AlertaIA(db.Model):
@@ -12,3 +12,4 @@ class AlertaIA(db.Model):
 
     def __repr__(self):
         return f"<AlertaIA {self.categoria} - {self.nivel}>"
+
