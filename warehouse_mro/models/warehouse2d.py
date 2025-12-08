@@ -1,5 +1,5 @@
 from datetime import datetime
-from . import db
+from warehouse_mro.models import db
 
 class WarehouseLocation(db.Model):
     __tablename__ = "warehouse_locations"
@@ -35,3 +35,4 @@ class WarehouseLocation(db.Model):
         if ratio < 0.5:
             return "bajo"
         return "normal"
+
