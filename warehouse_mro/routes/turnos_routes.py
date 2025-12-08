@@ -1,12 +1,16 @@
-from flask import Blueprint, jsonify
-from models.turnos import RegistroTurno
-from models import db
+from flask import Blueprint, jsonify, send_file
 from flask_login import current_user
+
+# ✔ IMPORTS CORREGIDOS PARA RAILWAY
+from warehouse_mro.models.turnos import RegistroTurno
+from warehouse_mro.models import db
+
 from datetime import date
 import qrcode
 import io
-from flask import send_file
+
 turno_bp = Blueprint("turno", __name__, url_prefix="/turno")
+
 
 @turno_bp.route("/registrar/<modulo>")
 def registrar_turno(modulo):
@@ -33,6 +37,7 @@ def registrar_turno(modulo):
     db.session.commit()
 
     return jsonify({"msg": "OK", "turno": turno_actual})
+
 
 @turno_bp.route("/qr/<codigo>")
 def qr(codigo):
