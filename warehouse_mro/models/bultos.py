@@ -1,7 +1,6 @@
-from models import db
+from warehouse_mro.models import db
 from datetime import datetime
 from zoneinfo import ZoneInfo
-
 
 # ============================================================
 # 📦 MODELO PRINCIPAL: BULTOS
@@ -79,3 +78,4 @@ class PostRegistro(db.Model):
 
     def __repr__(self):
         return f"<PostRegistro {self.id} Bulto {self.bulto_id}>"
+
