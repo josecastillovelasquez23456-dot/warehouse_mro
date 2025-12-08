@@ -1,5 +1,5 @@
 from datetime import datetime
-from . import db
+from warehouse_mro.models import db
 
 class TechnicianError(db.Model):
     __tablename__ = "technician_errors"
@@ -29,3 +29,4 @@ class TechnicianError(db.Model):
 
     # Fecha de creación del registro (para el dashboard)
     creado_en = db.Column(db.DateTime, default=datetime.utcnow)
+
