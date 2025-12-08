@@ -1,7 +1,9 @@
 from flask import Blueprint, render_template, request
 from flask_login import login_required
-from models import db
-from models.equipos import Equipo   # Puedes luego cambiar si usas otros modelos
+
+# IMPORTS CORREGIDOS PARA RAILWAY
+from warehouse_mro.models import db
+from warehouse_mro.models.equipos import Equipo
 
 productividad_bp = Blueprint("productividad", __name__, url_prefix="/productividad")
 
