@@ -1,7 +1,10 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, send_file
 from flask_login import login_required, current_user
-from models import db
-from models.technician_error import TechnicianError
+
+# ✔ IMPORTS CORREGIDOS PARA RAILWAY
+from warehouse_mro.models import db
+from warehouse_mro.models.technician_error import TechnicianError
+
 from datetime import datetime
 from sqlalchemy import func
 from reportlab.lib.pagesizes import letter
@@ -39,7 +42,6 @@ def new_error():
             "Error administrativo": {"dinero": 100, "puntaje": 5},
         }
 
-        # Seguridad por si alguien envía un tipo raro
         if tipo_error not in costos:
             flash("Tipo de error desconocido.", "danger")
             return redirect(url_for("technician_errors.new_error"))
@@ -76,7 +78,6 @@ def list_errors():
         TechnicianError.fecha_hora.desc()
     ).all()
 
-    # Ranking por dinero perdido
     ranking = (
         db.session.query(
             TechnicianError.tecnico,
@@ -88,7 +89,6 @@ def list_errors():
     )
     ranking_dict = {r[0]: float(r[1]) for r in ranking}
 
-    # Gráfico por día
     graf_raw = (
         db.session.query(
             func.date(TechnicianError.fecha_hora),
@@ -107,9 +107,8 @@ def list_errors():
         graf_por_dia=graf_por_dia
     )
 
-
 # ---------------------------------------------------------
-# REPORTE PDF (NUEVO - SIN ERRORES)
+# REPORTE PDF (NUEVO)
 # ---------------------------------------------------------
 @technician_errors_bp.route("/reporte_pdf")
 @login_required
@@ -117,15 +116,11 @@ def reporte_pdf():
 
     errores = TechnicianError.query.order_by(TechnicianError.fecha_hora.desc()).all()
 
-    # Nombre del archivo PDF temporal
     pdf_path = "reporte_errores.pdf"
 
     c = canvas.Canvas(pdf_path, pagesize=letter)
     width, height = letter
 
-    # --------------------------
-    # TÍTULO DEL REPORTE
-    # --------------------------
     c.setFont("Helvetica-Bold", 18)
     c.drawString(50, height - 50, "Reporte de Errores Técnicos - SIDERPERU")
 
@@ -133,9 +128,6 @@ def reporte_pdf():
     c.drawString(50, height - 80, f"Generado por: {current_user.username}")
     c.drawString(50, height - 100, f"Fecha: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
-    # --------------------------
-    # TABLA
-    # --------------------------
     y = height - 140
     c.setFont("Helvetica-Bold", 11)
     c.drawString(50, y, "Técnico")
