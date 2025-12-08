@@ -3,12 +3,13 @@ from flask_login import login_required
 from sqlalchemy import func
 from datetime import date
 
-from models.inventory import InventoryItem
-from models.bultos import Bulto
-from models.alerts import Alert        # ← CORREGIDO
-from models.warehouse2d import WarehouseLocation
-from models.technician_error import TechnicianError
-from models.equipos import Equipo
+# IMPORTS CORRECTOS PARA RAILWAY
+from warehouse_mro.models.inventory import InventoryItem
+from warehouse_mro.models.bultos import Bulto
+from warehouse_mro.models.alerts import Alert
+from warehouse_mro.models.warehouse2d import WarehouseLocation
+from warehouse_mro.models.technician_error import TechnicianError
+from warehouse_mro.models.equipos import Equipo
 
 dashboard_bp = Blueprint("dashboard", __name__, url_prefix="/dashboard")
 
@@ -69,7 +70,7 @@ def dashboard():
         if h in horas:
             horas[h] = cant
 
-    # PRODUCTIVIDAD
+    # PRODUCTIVIDAD / EQUIPOS
     equipos = Equipo.query.all()
 
     if not equipos:
@@ -79,17 +80,16 @@ def dashboard():
         estado_values = []
     else:
         prod_labels = [e.codigo for e in equipos]
-        prod_values = [e.productividad or 0 for e in equipos]
+        prod_values = [getattr(e, "productividad", 0) or 0 for e in equipos]
 
         estados = {}
         for e in equipos:
-            estado = e.estado or "Sin estado"
+            estado = getattr(e, "estado", "Sin estado") or "Sin estado"
             estados[estado] = estados.get(estado, 0) + 1
 
         estado_labels = list(estados.keys())
         estado_values = list(estados.values())
 
-    # RENDER TEMPLATE COMPLETO
     return render_template(
         "dashboard.html",
         total_stock=total_stock,
