@@ -1,4 +1,4 @@
-from models import db
+from warehouse_mro.models import db
 from datetime import datetime
 
 class ActividadUsuario(db.Model):
@@ -12,3 +12,4 @@ class ActividadUsuario(db.Model):
 
     def __repr__(self):
         return f"<ActividadUsuario {self.id} - {self.descripcion}>"
+
