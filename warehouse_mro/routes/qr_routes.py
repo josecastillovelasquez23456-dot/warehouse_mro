@@ -1,8 +1,7 @@
-from flask import Blueprint, render_template, request
+from flask import Blueprint, render_template, request, send_file
 from flask_login import login_required
 import qrcode
 import io
-from flask import send_file
 
 qr_bp = Blueprint("qr", __name__, url_prefix="/qr")
 
@@ -30,4 +29,9 @@ def generar_qr():
     img.save(buffer, "PNG")
     buffer.seek(0)
 
-    return send_file(buffer, mimetype="image/png", as_attachment=True, download_name="qr.png")
+    return send_file(
+        buffer,
+        mimetype="image/png",
+        as_attachment=True,
+        download_name="qr.png"
+    )
