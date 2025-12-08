@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template
 from flask_login import login_required
-from models.alerts import Alert
+from warehouse_mro.models import Alert   # ← IMPORT CORREGIDO
 
 alerts_bp = Blueprint("alerts", __name__, url_prefix="/alerts")
 
