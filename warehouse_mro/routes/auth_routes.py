@@ -6,8 +6,11 @@ from flask_login import (
     login_user, logout_user, login_required,
     current_user
 )
-from models import db
-from models.user import User
+
+# IMPORTS CORRECTOS PARA RAILWAY
+from warehouse_mro.models import db
+from warehouse_mro.models.user import User
+
 from datetime import datetime
 import os
 from werkzeug.utils import secure_filename
@@ -30,10 +33,10 @@ def login():
             flash("Usuario o contraseña incorrectos.", "danger")
             return redirect(url_for("auth.login"))
 
-        # Login normal
         user.last_login = datetime.utcnow()
         db.session.commit()
         login_user(user)
+
         flash("Bienvenido.", "success")
         return redirect(url_for("dashboard.dashboard"))
 
@@ -183,7 +186,7 @@ def subir_foto():
 
 
 # ============================================================
-# 📄 REPORTES PDF (MANTENIDOS TAL CUAL)
+# 📄 REPORTES PDF
 # ============================================================
 @auth_bp.route("/reportes")
 @login_required
@@ -197,7 +200,6 @@ def reportes_usuario():
 @auth_bp.route("/descargar-datos")
 @login_required
 def descargar_datos_gerencia():
-    from datetime import datetime
     from reportlab.pdfgen import canvas
     from reportlab.lib.pagesizes import letter
 
