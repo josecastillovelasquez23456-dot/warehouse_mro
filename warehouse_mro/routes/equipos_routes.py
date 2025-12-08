@@ -33,4 +33,3 @@ def nuevo():
         return redirect(url_for("equipos.lista"))
 
     return render_template("equipos/nuevo_equipo.html")
-
