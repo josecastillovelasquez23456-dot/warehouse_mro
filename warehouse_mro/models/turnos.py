@@ -1,4 +1,4 @@
-from models import db
+from warehouse_mro.models import db
 from datetime import datetime
 
 class RegistroTurno(db.Model):
@@ -9,3 +9,4 @@ class RegistroTurno(db.Model):
     user_id = db.Column(db.Integer)
     registros = db.Column(db.Integer, default=0)
     fecha = db.Column(db.Date)
+
