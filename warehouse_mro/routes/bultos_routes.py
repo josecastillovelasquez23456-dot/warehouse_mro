@@ -1,7 +1,10 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_required, current_user
-from models.bultos import Bulto, PostRegistro
-from models import db
+
+# IMPORTS CORRECTOS PARA RAILWAY
+from warehouse_mro.models.bultos import Bulto, PostRegistro
+from warehouse_mro.models import db
+
 from datetime import datetime
 from zoneinfo import ZoneInfo
 import calendar
@@ -23,7 +26,6 @@ def new_bulto():
         placa = request.form.get("placa", "").strip()
         observacion = request.form.get("observacion", "").strip()
 
-        # FECHA REAL DE PERÚ
         fecha_hora = datetime.now(ZoneInfo("America/Lima"))
 
         nuevo_bulto = Bulto(
@@ -77,13 +79,11 @@ def list_bultos():
 
     bultos = query.order_by(Bulto.fecha_hora.asc()).all()
 
-    # KPIs
     total_bultos = sum(b.cantidad for b in bultos)
     hoy = datetime.now(ZoneInfo("America/Lima")).date()
     bultos_hoy = sum(b.cantidad for b in bultos if b.fecha_hora.date() == hoy)
     total_trailers = len({b.placa for b in bultos})
 
-    # Gráficos (día, semana, mes)
     graf_dia = {}
     for b in bultos:
         d = b.fecha_hora.strftime("%d-%m")
