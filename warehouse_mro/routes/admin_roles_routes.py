@@ -1,8 +1,11 @@
 # routes/admin_roles_routes.py
+
 from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import login_required, current_user
-from models.user import User
-from models import db
+
+# IMPORTS ABSOLUTOS (REQUIRED PARA RAILWAY)
+from warehouse_mro.models.user import User
+from warehouse_mro.models import db
 
 admin_roles_bp = Blueprint("admin_roles", __name__, url_prefix="/roles")
 
@@ -51,7 +54,7 @@ def cambiar_rol(user_id):
         flash("Usuario no encontrado.", "danger")
         return redirect(url_for("admin_roles.listar_roles"))
 
-    # Evitar que el owner se quite su propio rol
+    # Evitar que el owner modifique su propio rol
     if usuario.id == current_user.id and nuevo_rol != "owner":
         flash("No puedes quitarte tu propio rol de OWNER.", "danger")
         return redirect(url_for("admin_roles.listar_roles"))
