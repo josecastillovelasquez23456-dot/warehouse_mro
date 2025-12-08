@@ -1,4 +1,4 @@
-from models import db
+from warehouse_mro.models import db
 from datetime import datetime
 
 class InventoryHistory(db.Model):
