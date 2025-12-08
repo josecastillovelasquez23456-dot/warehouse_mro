@@ -1,8 +1,8 @@
 from flask import Flask, redirect, url_for
 from flask_login import LoginManager
 from warehouse_mro.config import Config
-from models import db
-from models.user import User
+from warehouse_mro.models import db
+from warehouse_mro.models import User
 from routes import register_blueprints
 
 # ==============================
@@ -101,4 +101,5 @@ def create_app():
 if __name__ == "__main__":
     app = create_app()
     app.run(debug=True)
+
 
