@@ -53,29 +53,4 @@ class Bulto(db.Model):
         return f"<Bulto {self.id} - {self.placa}>"
 
 
-# ============================================================
-# 🔄 MODELO COMPLEMENTARIO: POST-REGISTRO
-# ============================================================
-class PostRegistro(db.Model):
-    __tablename__ = "post_registro"
-
-    id = db.Column(db.Integer, primary_key=True)
-
-    bulto_id = db.Column(db.Integer, db.ForeignKey("bultos.id"), nullable=False)
-
-    cantidad_sistema = db.Column(db.Integer, nullable=False)
-    cantidad_real = db.Column(db.Integer, nullable=False)
-    diferencia = db.Column(db.Integer, nullable=False)
-
-    observacion = db.Column(db.String(255))
-    registrado_por = db.Column(db.String(120))
-
-    # Ahora siempre guarda la hora PERÚ
-    fecha_registro = db.Column(
-        db.DateTime,
-        default=lambda: datetime.now(ZoneInfo("America/Lima"))
-    )
-
-    def __repr__(self):
-        return f"<PostRegistro {self.id} Bulto {self.bulto_id}>"
 
